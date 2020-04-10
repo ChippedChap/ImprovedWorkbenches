@@ -11,6 +11,12 @@ namespace ImprovedWorkbenches
         public bool CountAway;
         public string Name;
         public ThingFilter ProductAdditionalFilter;
+        public bool ForbidIncompleteStacks;
+
+        // Def Names -> Stack Reference
+        private Dictionary<string, Thing> IncompleteStacks = new Dictionary<string, Thing>();
+        private List<string> stackDefNames = new List<string>();
+        private List<Thing> stacks = new List<Thing>();
 
         public ExtendedBillData()
         {
@@ -20,6 +26,7 @@ namespace ImprovedWorkbenches
         {
             CountAway = other.CountAway;
             ProductAdditionalFilter = new ThingFilter();
+            ForbidIncompleteStacks = other.ForbidIncompleteStacks;
             if(other.ProductAdditionalFilter != null)
                 ProductAdditionalFilter.CopyAllowancesFrom(other.ProductAdditionalFilter);
 
@@ -27,11 +34,31 @@ namespace ImprovedWorkbenches
                 Name = other.Name;
         }
 
+        public void HandleForbid(Thing t)
+        {
+            if (t.def.stackLimit == 1) return;
+            if(IncompleteStacks.ContainsKey(t.def.defName))
+            {
+                if (t != IncompleteStacks[t.def.defName])
+                {
+                    IncompleteStacks[t.def.defName].SetForbidden(false);
+                    IncompleteStacks[t.def.defName] = t;
+                }
+            }
+            else
+            {
+                IncompleteStacks.Add(t.def.defName, t);
+            }
+            t.SetForbidden(t.stackCount < t.def.stackLimit);
+        }
+
         public void ExposeData()
         {
             Scribe_Values.Look(ref CountAway, "countAway", false);
             Scribe_Values.Look(ref Name, "name", null);
+            Scribe_Values.Look(ref ForbidIncompleteStacks, "autoForbid");
             Scribe_Deep.Look(ref ProductAdditionalFilter, "productFilter");
+            Scribe_Collections.Look(ref IncompleteStacks, "incompleteStacks", LookMode.Value, LookMode.Reference, ref stackDefNames, ref stacks);
         }
     }
 

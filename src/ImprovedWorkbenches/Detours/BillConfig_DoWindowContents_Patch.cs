@@ -1,4 +1,6 @@
-﻿using System.Reflection;
+﻿using System.Collections.Generic;
+using System.Reflection;
+using System.Reflection.Emit;
 using HarmonyLib;
 using RimWorld;
 using UnityEngine;
@@ -11,6 +13,13 @@ namespace ImprovedWorkbenches
     {
         private static readonly FieldInfo BillGetter = typeof(Dialog_BillConfig).GetField("bill",
             BindingFlags.NonPublic | BindingFlags.Instance);
+
+        public static bool Prepare()
+        {
+            FieldInfo radiusHeightField = AccessTools.DeclaredField(typeof(Dialog_BillConfig), "IngredientRadiusSubdialogHeight");
+            radiusHeightField.SetValue(null, 70);
+            return true;
+        }
 
         [HarmonyPostfix]
         public static void DrawFilters(Dialog_BillConfig __instance, Rect inRect)
@@ -109,6 +118,31 @@ namespace ImprovedWorkbenches
             }
 
             optionsList.End();
+        }
+
+        // Intended to grab the Listing_Standard that handles the drawing of the radius slider and pass it.
+        public static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+        {
+            var list = new List<CodeInstruction>(instructions);
+            for(int i = 0; i < list.Count; i++)
+            {
+                yield return list[i];
+                if (i + 1 < list.Count && list[i].opcode == OpCodes.Callvirt && list[i+1].OperandIs("IngredientSearchRadius"))
+                {
+                    yield return new CodeInstruction(OpCodes.Ldarg_0);
+                    yield return new CodeInstruction(OpCodes.Ldfld, AccessTools.Field(typeof(Dialog_BillConfig), "bill"));
+                    yield return new CodeInstruction(OpCodes.Ldloc_S, 25);
+                    yield return new CodeInstruction(OpCodes.Call, typeof(BillConfig_DoWindowContents_Patch).GetMethod("DrawForbidSetting"));
+                }
+            }
+        }
+
+        public static void DrawForbidSetting(Bill_Production bill, Listing_Standard list)
+        {
+            if (bill.GetStoreMode() != BillStoreModeDefOf.DropOnFloor) return;
+            var extendedBillDataStorage = Main.Instance.GetExtendedBillDataStorage();
+            var extendedBillData = extendedBillDataStorage.GetOrCreateExtendedDataFor(bill);
+            list.CheckboxLabeled("IW.ForbidIncompleteStacks".Translate(), ref extendedBillData.ForbidIncompleteStacks);
         }
 
         private static void DrawWorkTableNavigation(Dialog_BillConfig dialog, Bill_Production bill, Rect inRect)
