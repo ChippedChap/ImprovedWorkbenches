@@ -49,7 +49,7 @@ namespace ImprovedWorkbenches.Detours
             if (toil.actor.jobs.curJob.bill is Bill_Production production) 
             {
                 var extendedBillData = Main.Instance.GetExtendedBillDataStorage().GetOrCreateExtendedDataFor(production);
-                if(extendedBillData.ForbidIncompleteStacks) extendedBillData.HandleForbid(lastThing);
+                if(extendedBillData.ForbidIncompleteStacks) extendedBillData.HandleForbid(lastThing, production);
             }
             return result;
         }

@@ -102,6 +102,7 @@ namespace ImprovedWorkbenches
         // Delete extended data when bill is deleted
         public void DeleteExtendedDataFor(Bill_Production bill)
         {
+            _store[bill].UnforbidAndClearStacks();
             RemoveBillFromLinkSets(bill);
             _store.Remove(bill);
         }

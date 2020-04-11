@@ -27,17 +27,17 @@ namespace ImprovedWorkbenches
             CountAway = other.CountAway;
             ProductAdditionalFilter = new ThingFilter();
             ForbidIncompleteStacks = other.ForbidIncompleteStacks;
-            if(other.ProductAdditionalFilter != null)
+            if (other.ProductAdditionalFilter != null)
                 ProductAdditionalFilter.CopyAllowancesFrom(other.ProductAdditionalFilter);
 
             if (cloneName)
                 Name = other.Name;
         }
 
-        public void HandleForbid(Thing t)
+        public void HandleForbid(Thing t, Bill_Production p)
         {
             if (t.def.stackLimit == 1) return;
-            if(IncompleteStacks.ContainsKey(t.def.defName))
+            if (IncompleteStacks.ContainsKey(t.def.defName))
             {
                 if (t != IncompleteStacks[t.def.defName])
                 {
@@ -49,7 +49,14 @@ namespace ImprovedWorkbenches
             {
                 IncompleteStacks.Add(t.def.defName, t);
             }
-            t.SetForbidden(t.stackCount < t.def.stackLimit);
+            t.SetForbidden(t.stackCount < t.def.stackLimit && (p.repeatMode != BillRepeatModeDefOf.RepeatCount || p.repeatCount != 0));
+        }
+
+        public void UnforbidAndClearStacks()
+        {
+            foreach(Thing stack in IncompleteStacks.Values)
+                if (stack != null) stack.SetForbidden(false);
+            IncompleteStacks.Clear();
         }
 
         public void ExposeData()

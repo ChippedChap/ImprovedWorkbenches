@@ -12,8 +12,10 @@ namespace ImprovedWorkbenches
         private static readonly MethodInfo CanUnpauseGetter = typeof(Bill_Production).GetMethod("CanUnpause",
             BindingFlags.NonPublic | BindingFlags.Instance);
 
-        static bool Prefix(Bill __instance)
+        static bool Prefix(bool __state, Bill __instance)
         {
+            __state = __instance.suspended;
+
             if (!Main.Instance.ShouldAllowDragToReorder())
                 return true;
 
@@ -22,8 +24,14 @@ namespace ImprovedWorkbenches
             return true;
         }
 
-        public static void Postfix(ref Bill __instance, float x, float y, float width, int index)
+        public static void Postfix(bool __state, ref Bill __instance, float x, float y, float width, int index)
         {
+            if(__state != __instance.suspended && __instance is Bill_Production prod)
+            {
+                var extendedBillData = Main.Instance.GetExtendedBillDataStorage().GetOrCreateExtendedDataFor(prod);
+                extendedBillData.UnforbidAndClearStacks();
+            }
+
             if (!Main.Instance.ShouldAllowDragToReorder())
                 return;
 
